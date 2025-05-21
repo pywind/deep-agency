@@ -5,8 +5,8 @@ import { GithubFilled } from "@ant-design/icons";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
-import { AuroraText } from "~/components/magicui/aurora-text";
-import { FlickeringGrid } from "~/components/magicui/flickering-grid";
+import { AuroraText } from "~/components/magic-ui/aurora-text";
+import { FlickeringGrid } from "~/components/magic-ui/flickering-grid";
 import { Button } from "~/components/ui/button";
 import { env } from "~/env";
 
@@ -39,7 +39,7 @@ export function Jumbotron() {
           <AuroraText>at Your Fingertips</AuroraText>
         </h1>
         <p className="max-w-4xl p-2 text-center text-sm opacity-85 md:text-2xl">
-          Meet DeerFlow, your personal Deep Research assistant. With powerful
+          Meet us, your personal Deep Research assistant. With powerful
           tools like search engines, web crawlers, Python and MCP services, it
           delivers instant insights, comprehensive reports, and even captivating
           podcasts.

@@ -3,7 +3,7 @@
 
 import { Bird, Microscope, Podcast, Usb, User } from "lucide-react";
 
-import { BentoCard, BentoGrid } from "~/components/magicui/bento-grid";
+import { BentoCard, BentoGrid } from "~/components/magic-ui/bento-grid";
 
 import { SectionHeader } from "../components/section-header";
 
@@ -76,7 +76,7 @@ export function CoreFeatureSection() {
       <SectionHeader
         anchor="core-features"
         title="Core Features"
-        description="Find out what makes DeerFlow effective."
+        description="Find out what makes us effective."
       />
       <BentoGrid className="w-3/4 lg:grid-cols-2 lg:grid-rows-3">
         {features.map((feature) => (

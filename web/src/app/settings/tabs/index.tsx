@@ -5,9 +5,8 @@ import { Settings, type LucideIcon } from "lucide-react";
 
 import { AboutTab } from "./about-tab";
 import { GeneralTab } from "./general-tab";
-import { MCPTab } from "./mcp-tab";
 
-export const SETTINGS_TABS = [GeneralTab, MCPTab, AboutTab].map((tab) => {
+export const SETTINGS_TABS = [GeneralTab, AboutTab].map((tab) => {
   const name = tab.name ?? tab.displayName;
   return {
     ...tab,

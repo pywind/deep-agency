@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { Bike, Building, Film, Github, Ham, Home, Pizza } from "lucide-react";
+import { Bike, Building, Film, Ham, Home, Pizza, Star } from "lucide-react";
 import { Bot } from "lucide-react";
 
-import { BentoCard } from "~/components/magicui/bento-grid";
+import { BentoCard } from "~/components/magic-ui/bento-grid";
 
 import { SectionHeader } from "../components/section-header";
 
@@ -18,7 +18,7 @@ const caseStudies = [
   },
   {
     id: "github-top-trending-repo",
-    icon: Github,
+    icon: Star,
     title: "What are the top trending repositories on GitHub?",
     description:
       "The research utilized MCP services to identify the most popular GitHub repositories and documented them in detail using search engines.",
@@ -45,20 +45,6 @@ const caseStudies = [
       "The research provides a comprehensive introduction to the movie 'Léon: The Professional', including its plot, characters, and themes.",
   },
   {
-    id: "china-food-delivery",
-    icon: Bike,
-    title: "How do you view the takeaway war in China? (in Chinese)",
-    description:
-      "The research analyzes the intensifying competition between JD and Meituan, highlighting their strategies, technological innovations, and challenges.",
-  },
-  {
-    id: "ultra-processed-foods",
-    icon: Pizza,
-    title: "Are ultra-processed foods linked to health?",
-    description:
-      "The research examines the health risks of rising ultra-processed food consumption, urging more research on long-term effects and individual differences.",
-  },
-  {
     id: "ai-twin-insurance",
     icon: Bot,
     title: 'Write an article on "Would you insure your AI twin?"',
@@ -73,7 +59,7 @@ export function CaseStudySection() {
       <SectionHeader
         anchor="case-studies"
         title="Case Studies"
-        description="See DeerFlow in action through replays."
+        description="See thinking in action through replays."
       />
       <div className="grid w-3/4 grid-cols-1 gap-2 sm:w-full sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {caseStudies.map((caseStudy) => (

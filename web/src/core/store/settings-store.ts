@@ -5,7 +5,7 @@ import { create } from "zustand";
 
 import type { MCPServerMetadata, SimpleMCPServerMetadata } from "../mcp";
 
-const SETTINGS_KEY = "deerflow.settings";
+const SETTINGS_KEY = "deepagency.settings";
 
 const DEFAULT_SETTINGS: SettingsState = {
   general: {
@@ -37,7 +37,21 @@ export const useSettingsStore = create<SettingsState>(() => ({
   ...DEFAULT_SETTINGS,
 }));
 
-export const useSettings = (key: keyof SettingsState) => {
+export const useSettings = () => {
+  const settings = useSettingsStore();
+  
+  const updateSettings = (newSettings: Partial<SettingsState>) => {
+    useSettingsStore.setState((state) => ({
+      ...state,
+      ...newSettings,
+    }));
+    saveSettings();
+  };
+  
+  return { settings, updateSettings };
+};
+
+export const useSettingsValue = (key: keyof SettingsState) => {
   return useSettingsStore((state) => state[key]);
 };
 
