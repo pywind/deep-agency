@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS: SettingsState = {
     maxPlanIterations: 1,
     maxStepNum: 3,
     maxSearchResults: 3,
+    add_to_agents: ["researcher"],
   },
   mcp: {
     servers: [],
@@ -27,6 +28,7 @@ export type SettingsState = {
     maxPlanIterations: number;
     maxStepNum: number;
     maxSearchResults: number;
+    add_to_agents: string[];
   };
   mcp: {
     servers: MCPServerMetadata[];
@@ -127,7 +129,7 @@ export const getChatStreamSettings = () => {
           [cur.name]: {
             ...server,
             enabled_tools: cur.tools.map((tool) => tool.name),
-            add_to_agents: ["researcher"],
+            add_to_agents: general.add_to_agents,
           },
         };
       }, {}),

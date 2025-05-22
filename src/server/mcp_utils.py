@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 async def _get_tools_from_client_session(
-    client_context_manager: Any, timeout_seconds: int = 10
+    client_context_manager: Any, timeout_seconds: int = 30
 ) -> List:
     """
     Helper function to get tools from a client session.
@@ -29,15 +29,22 @@ async def _get_tools_from_client_session(
     Raises:
         Exception: If there's an error during the process
     """
-    async with client_context_manager as (read, write):
-        async with ClientSession(
-            read, write, read_timeout_seconds=timedelta(seconds=timeout_seconds)
-        ) as session:
-            # Initialize the connection
-            await session.initialize()
-            # List available tools
-            listed_tools = await session.list_tools()
-            return listed_tools.tools
+    try:
+        async with client_context_manager as (read, write):
+            async with ClientSession(
+                read, write, read_timeout_seconds=timedelta(seconds=timeout_seconds)
+            ) as session:
+                # Initialize the connection
+                await session.initialize()
+                # List available tools
+                listed_tools = await session.list_tools()
+                return listed_tools.tools
+    except TimeoutError:
+        logger.error(f"Timeout connecting to MCP server (timeout: {timeout_seconds}s)")
+        raise HTTPException(status_code=504, detail="Timeout connecting to MCP server")
+    except Exception as e:
+        logger.error(f"Error connecting to MCP server: {str(e)}")
+        raise
 
 
 async def load_mcp_tools(
@@ -46,7 +53,7 @@ async def load_mcp_tools(
     args: Optional[List[str]] = None,
     url: Optional[str] = None,
     env: Optional[Dict[str, str]] = None,
-    timeout_seconds: int = 60,  # Longer default timeout for first-time executions
+    timeout_seconds: int = 30,  # Default timeout for MCP connections
 ) -> List:
     """
     Load tools from an MCP server.

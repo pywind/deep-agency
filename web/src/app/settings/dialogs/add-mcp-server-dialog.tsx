@@ -83,7 +83,12 @@ export function AddMCPServerDialog({
       setOpen(false);
     } catch (e) {
       console.error(e);
-      setError(`Failed to add server: ${serverName}`);
+      // Display more helpful error message
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError(`Failed to add server: ${serverName}. Please check server connection.`);
+      }
     } finally {
       setProcessing(false);
     }

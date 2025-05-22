@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Settings } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { Settings, Check, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -19,6 +19,14 @@ import {
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Switch } from "~/components/ui/switch";
+import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import type { SettingsState } from "~/core/store";
 
 import type { Tab } from "./types";
@@ -35,7 +43,16 @@ const generalFormSchema = z.object({
   maxSearchResults: z.number().min(1, {
     message: "Max search results must be at least 1.",
   }),
+  add_to_agents: z.array(z.string()).min(1, {
+    message: "Select at least one agent.",
+  }),
 });
+
+const agentOptions = [
+  { value: "coordinator", label: "Coordinator" },
+  { value: "researcher", label: "Researcher" },
+  { value: "coder", label: "Coder" },
+];
 
 export const GeneralTab: Tab = ({
   settings,
@@ -165,6 +182,82 @@ export const GeneralTab: Tab = ({
                   </FormControl>
                   <FormDescription>
                     By default, each search step has 3 results.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="add_to_agents"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Agents to use</FormLabel>
+                  <FormControl>
+                    <DropdownMenu>
+                      <div className="w-full border rounded-md relative">
+                        <div className="flex flex-wrap gap-1 p-2 min-h-10">
+                          {field.value.length > 0 ? (
+                            field.value.map((value) => {
+                              const option = agentOptions.find(opt => opt.value === value);
+                              return (
+                                <Badge 
+                                  key={value} 
+                                  className="bg-secondary text-secondary-foreground"
+                                >
+                                  {option?.label}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      // Don't allow removing the last agent
+                                      if (field.value.length > 1) {
+                                        field.onChange(field.value.filter(v => v !== value));
+                                      }
+                                    }}
+                                    className="ml-1 rounded-full hover:bg-muted"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              );
+                            })
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Select agents...</span>
+                          )}
+                        </div>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            className="absolute top-0 right-0 h-full px-3 hover:bg-transparent"
+                          >
+                            <span className="opacity-50">▼</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </div>
+                      <DropdownMenuContent className="w-60">
+                        {agentOptions.map((option) => (
+                          <DropdownMenuCheckboxItem
+                            key={option.value}
+                            checked={field.value.includes(option.value)}
+                            onCheckedChange={(checked) => {
+                              const updatedValue = checked
+                                ? [...field.value, option.value]
+                                : field.value.filter((value) => value !== option.value);
+                                
+                              // Ensure at least one agent is selected
+                              if (updatedValue.length > 0 || !checked) {
+                                field.onChange(updatedValue);
+                              }
+                            }}
+                          >
+                            {option.label}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </FormControl>
+                  <FormDescription>
+                    Select which agents to use for tasks. At least one agent must be selected.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

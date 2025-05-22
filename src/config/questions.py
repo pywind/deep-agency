@@ -11,6 +11,5 @@ BUILT_IN_QUESTIONS = [
     "How is blockchain technology being used outside of cryptocurrency?",
     "What advances have been made in natural language processing?",
     "How is machine learning transforming the financial industry?",
-    "What are the environmental impacts of electric vehicles?",
 ]
 

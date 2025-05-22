@@ -64,6 +64,16 @@ async function* chatReplayStream(
     max_step_num: number;
     max_search_results?: number;
     interrupt_feedback?: string;
+    enable_background_investigation?: boolean;
+    mcp_settings?: {
+      servers: Record<
+        string,
+        MCPServerMetadata & {
+          enabled_tools: string[];
+          add_to_agents: string[];
+        }
+      >;
+    };
   } = {
     thread_id: "__mock__",
     auto_accepted_plan: false,
@@ -71,6 +81,8 @@ async function* chatReplayStream(
     max_step_num: 1,
     max_search_results: 3,
     interrupt_feedback: undefined,
+    enable_background_investigation: true,
+    mcp_settings: undefined,
   },
   options: { abortSignal?: AbortSignal } = {},
 ): AsyncIterable<ChatEvent> {
@@ -161,6 +173,8 @@ export async function fetchReplayTitle() {
       max_plan_iterations: 3,
       max_step_num: 1,
       max_search_results: 3,
+      enable_background_investigation: true,
+      mcp_settings: undefined,
     },
     {},
   );

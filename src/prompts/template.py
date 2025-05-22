@@ -4,6 +4,8 @@
 import os
 import dataclasses
 from datetime import datetime
+from typing import Any, Dict, Union
+
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from langgraph.prebuilt.chat_agent_executor import AgentState
 from src.config.configuration import Configuration
@@ -35,7 +37,7 @@ def get_prompt_template(prompt_name: str) -> str:
 
 
 def apply_prompt_template(
-    prompt_name: str, state: AgentState, configurable: Configuration = None
+    prompt_name: str, state: Union[AgentState, Dict[str, Any]], configurable: Configuration
 ) -> list:
     """
     Apply template variables to a prompt template and return formatted messages.
@@ -43,6 +45,7 @@ def apply_prompt_template(
     Args:
         prompt_name: Name of the prompt template to use
         state: Current agent state containing variables to substitute
+        configurable: Configuration object with additional settings
 
     Returns:
         List of messages with the system prompt as the first message

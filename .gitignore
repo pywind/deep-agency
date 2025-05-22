@@ -105,3 +105,6 @@ ENV/
 
 # Mac specific
 .DS_Store 
+.venv/
+*.lock
+uv.lock

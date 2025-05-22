@@ -2,32 +2,25 @@
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
  * for Docker builds.
  */
-// Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
-// SPDX-License-Identifier: MIT
+
 
 import "./src/env.js";
 
+// Using webpack for both development and production for better stability
+// Turbopack has been disabled due to performance issues
+
+// Determine if we're in production mode
+const isProd = process.env.NODE_ENV === 'production';
+
 /** @type {import("next").NextConfig} */
-
-// leverages **Turbopack** during development for faster builds and a smoother developer experience.
-// However, in production, **Webpack** is used instead.
-//
-// This decision is based on the current recommendation to avoid using Turbopack for critical projects, as it
-// is still evolving and may not yet be fully stable for production environments.
-
 const config = {
-  // For development mode
-  turbopack: {
-    rules: {
-      "*.md": {
-        loaders: ["raw-loader"],
-        as: "*.js",
-      },
-    },
+  // Enable dev indicators in development, disable in production
+  devIndicators: isProd ? false : {
+    position: 'bottom-left',
   },
 
   // For production mode
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.module.rules.push({
       test: /\.md$/,
       use: "raw-loader",

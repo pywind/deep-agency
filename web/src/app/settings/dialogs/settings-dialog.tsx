@@ -3,6 +3,7 @@
 
 import { Settings } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -51,6 +52,12 @@ export function SettingsDialog() {
       setChanges({});
       changeSettings(newSettings);
       saveSettings();
+      
+      // Show a toast notification to confirm settings are saved
+      toast.success("Settings saved successfully");
+      
+      // Close the dialog after saving
+      window.dispatchEvent(new Event('close-settings-dialog'));
     }
   }, [settings, changes]);
 

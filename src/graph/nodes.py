@@ -10,7 +10,6 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langgraph.types import Command, interrupt
-from langchain_mcp_adapters.client import MultiServerMCPClient
 
 from src.agents import create_agent
 from src.tools.search import LoggedTavilySearch
@@ -26,9 +25,11 @@ from src.llms.llm import get_llm_by_type
 from src.prompts.planner_model import Plan, StepType
 from src.prompts.template import apply_prompt_template
 from src.utils.json_utils import repair_json_output
+from src.utils.mcp_utils import extract_mcp_settings
 
 from .types import State
 from ..config import SELECTED_SEARCH_ENGINE, SearchEngine
+from .mcp_nodes import handle_mcp_coordination, setup_mcp_agent
 
 logger = logging.getLogger(__name__)
 
@@ -205,26 +206,32 @@ def human_feedback_node(
     )
 
 
-def coordinator_node(
-    state: State,
-) -> Command[Literal["planner", "background_investigator", "__end__"]]:
-    """Coordinator node that communicate with customers."""
-    logger.info("Coordinator talking.")
-    messages = apply_prompt_template("coordinator", state)
+def _handle_standard_coordination(state, configurable):
+    """
+    Handle coordination using standard LLM without MCP tools.
+    
+    Args:
+        state: Current state
+        configurable: Configuration object
+        
+    Returns:
+        tuple: (goto, locale) - next node and locale
+    """
+    logger.info("Using standard coordinator")
+    messages = apply_prompt_template("coordinator", state, configurable)
     response = (
         get_llm_by_type(AGENT_LLM_MAP["coordinator"])
         .bind_tools([handoff_to_planner])
         .invoke(messages)
     )
-    logger.debug(f"Current state messages: {state['messages']}")
+    logger.debug(f"Coordinator response: {response}")
 
     goto = "__end__"
-    locale = state.get("locale", "en-US")  # Default locale if not specified
-
-    if len(response.tool_calls) > 0:
+    locale = state.get("locale", "en-US")
+    
+    if hasattr(response, "tool_calls") and len(response.tool_calls) > 0:
         goto = "planner"
         if state.get("enable_background_investigation"):
-            # if the search_before_planning is True, add the web search tool to the planner agent
             goto = "background_investigator"
         try:
             for tool_call in response.tool_calls:
@@ -240,16 +247,47 @@ def coordinator_node(
             "Coordinator response contains no tool calls. Terminating workflow execution."
         )
         logger.debug(f"Coordinator response: {response}")
+    
+    return goto, locale
 
+
+async def coordinator_node(
+    state: State,
+    config: RunnableConfig,
+) -> Command[Literal["planner", "background_investigator", "research_team", "__end__"]]:
+    """Coordinator node that communicates with customers and handles MCP tools if available."""
+    logger.info("Coordinator talking.")
+    configurable = Configuration.from_runnable_config(config)
+    
+    # Extract MCP settings for coordinator
+    mcp_servers, enabled_tools = extract_mcp_settings(configurable, "coordinator")
+    
+    # Initialize default values
+    goto = "__end__"
+    locale = state.get("locale", "en-US")
+    updated_messages = state["messages"]
+    
+    # Choose coordination approach based on available MCP servers
+    if mcp_servers:
+        goto, locale, updated_messages = await handle_mcp_coordination(
+            state, configurable, mcp_servers, enabled_tools, [handoff_to_planner]
+        )
+    else:
+        goto, locale = _handle_standard_coordination(state, configurable)
+    
     return Command(
-        update={"locale": locale},
+        update={
+            "locale": locale,
+            "messages": updated_messages
+        },
         goto=goto,
     )
 
 
-def reporter_node(state: State):
+def reporter_node(state: State, config: RunnableConfig):
     """Reporter node that write a final report."""
     logger.info("Reporter write final report")
+    configurable = Configuration.from_runnable_config(config)
     current_plan = state.get("current_plan")
     input_ = {
         "messages": [
@@ -259,7 +297,7 @@ def reporter_node(state: State):
         ],
         "locale": state.get("locale", "en-US"),
     }
-    invoke_messages = apply_prompt_template("reporter", input_)
+    invoke_messages = apply_prompt_template("reporter", input_, configurable)
     observations = state.get("observations", [])
 
     # Add a reminder about the new report format, citation style, and table usage
@@ -425,41 +463,12 @@ async def _setup_and_execute_agent_step(
     Returns:
         Command to update state and go to research_team
     """
-    configurable = Configuration.from_runnable_config(config)
-    mcp_servers = {}
-    enabled_tools = {}
-
-    # Extract MCP server configuration for this agent type
-    if configurable.mcp_settings:
-        for server_name, server_config in configurable.mcp_settings["servers"].items():
-            if (
-                server_config["enabled_tools"]
-                and agent_type in server_config["add_to_agents"]
-            ):
-                mcp_servers[server_name] = {
-                    k: v
-                    for k, v in server_config.items()
-                    if k in ("transport", "command", "args", "url", "env")
-                }
-                for tool_name in server_config["enabled_tools"]:
-                    enabled_tools[tool_name] = server_name
-
-    # Create and execute agent with MCP tools if available
-    if mcp_servers:
-        async with MultiServerMCPClient(mcp_servers) as client:
-            loaded_tools = default_tools[:]
-            for tool in client.get_tools():
-                if tool.name in enabled_tools:
-                    tool.description = (
-                        f"Powered by '{enabled_tools[tool.name]}'.\n{tool.description}"
-                    )
-                    loaded_tools.append(tool)
-            agent = create_agent(agent_type, agent_type, loaded_tools, agent_type)
-            return await _execute_agent_step(state, agent, agent_type)
-    else:
-        # Use default tools if no MCP servers are configured
-        agent = create_agent(agent_type, agent_type, default_tools, agent_type)
-        return await _execute_agent_step(state, agent, agent_type)
+    # Use the setup_mcp_agent function to configure MCP-related tools
+    _, _, loaded_tools = await setup_mcp_agent(state, config, agent_type, default_tools)
+    
+    # Create and execute agent with configured tools
+    agent = create_agent(agent_type, agent_type, loaded_tools, agent_type)
+    return await _execute_agent_step(state, agent, agent_type)
 
 
 async def researcher_node(
