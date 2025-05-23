@@ -29,6 +29,8 @@ import type { ToolCallRuntime } from "~/core/messages";
 import { useMessage, useStore } from "~/core/store";
 import { parseJSON } from "~/core/utils";
 import { cn } from "~/lib/utils";
+import { DelayedImageLoader } from "~/components/deer-flow/delayed-image-loader";
+import { DelayedFavIconLoader } from "~/components/deer-flow/delayed-favicon-loader";
 
 export function ResearchActivitiesBlock({
   className,
@@ -191,11 +193,7 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
                     ease: "easeOut",
                   }}
                 >
-                  <FavIcon
-                    className="mt-1"
-                    url={searchResult.url}
-                    title={searchResult.title}
-                  />
+                  <DelayedFavIconLoader className="mt-1" url={searchResult.url} title={searchResult.title} />
                   <a href={searchResult.url} target="_blank">
                     {searchResult.title}
                   </a>
@@ -217,7 +215,7 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
                   href={searchResult.image_url}
                   target="_blank"
                 >
-                  <Image
+                  <DelayedImageLoader
                     src={searchResult.image_url}
                     alt={searchResult.image_description}
                     className="bg-accent h-40 w-40 max-w-full rounded-md bg-cover bg-center bg-no-repeat"
@@ -261,7 +259,7 @@ function CrawlToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
             ease: "easeOut",
           }}
         >
-          <FavIcon className="mt-1" url={url} title={title} />
+          <DelayedFavIconLoader className="mt-1" url={url} title={title} />
           <a
             className="h-full flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
             href={url}

@@ -16,7 +16,7 @@ import { rehypeSplitWordsIntoSpans } from "~/core/rehype";
 import { autoFixMarkdown } from "~/core/utils/markdown";
 import { cn } from "~/lib/utils";
 
-import Image from "./image";
+import { DelayedImageLoader } from "./delayed-image-loader";
 import { Tooltip } from "./tooltip";
 import { Link } from "./link";
 
@@ -44,7 +44,11 @@ export function Markdown({
       ),
       img: ({ src, alt }) => (
         <a href={src as string} target="_blank" rel="noopener noreferrer">
-          <Image className="rounded" src={src as string} alt={alt ?? ""} />
+          <DelayedImageLoader 
+            className="rounded" 
+            src={src as string} 
+            alt={alt ?? ""} 
+          />
         </a>
       ),
     };

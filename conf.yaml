@@ -10,5 +10,5 @@ BASIC_MODEL:
 
 REASONING_MODEL:
   # base_url: "https://api.openai.com/v1/chat/completions"
-  model: "openai/gpt-4.1-mini"
+  model: "o3-mini"
   api_key: $OPENAI_API_KEY

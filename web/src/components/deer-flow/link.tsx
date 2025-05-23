@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useStore, useToolCalls } from "~/core/store";
 import { Tooltip } from "./tooltip";
 import { WarningFilled } from "@ant-design/icons";
+import { isValidURL } from "~/core/utils/url";
 
 export const Link = ({
   href,
@@ -14,6 +15,17 @@ export const Link = ({
 }) => {
   const toolCalls = useToolCalls();
   const responding = useStore((state) => state.responding);
+  const [validatedHref, setValidatedHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Validate the URL before rendering
+    if (href && isValidURL(href)) {
+      setValidatedHref(href);
+    } else if (href) {
+      console.warn(`Invalid or incomplete URL detected: "${href}"`);
+      setValidatedHref(null);
+    }
+  }, [href]);
 
   const credibleLinks = useMemo(() => {
     const links = new Set<string>();
@@ -31,14 +43,19 @@ export const Link = ({
   }, [toolCalls]);
 
   const isCredible = useMemo(() => {
-    return checkLinkCredibility && href && !responding
-      ? credibleLinks.has(href)
+    return checkLinkCredibility && validatedHref && !responding
+      ? credibleLinks.has(validatedHref)
       : true;
-  }, [credibleLinks, href, responding, checkLinkCredibility]);
+  }, [credibleLinks, validatedHref, responding, checkLinkCredibility]);
+
+  if (!validatedHref) {
+    // If URL is invalid, just render the text without making it a link
+    return <span>{children}</span>;
+  }
 
   return (
     <span className="flex items-center gap-1.5">
-      <a href={href} target="_blank" rel="noopener noreferrer">
+      <a href={validatedHref} target="_blank" rel="noopener noreferrer">
         {children}
       </a>
       {!isCredible && (

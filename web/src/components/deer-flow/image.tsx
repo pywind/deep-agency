@@ -4,6 +4,7 @@
 import { memo, useCallback, useEffect, useState } from "react";
 
 import { cn } from "~/lib/utils";
+import { isValidURL } from "~/core/utils/url";
 
 import { Tooltip } from "./tooltip";
 
@@ -24,10 +25,20 @@ function Image({
 }) {
   const [, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [validatedSrc, setValidatedSrc] = useState<string | null>(null);
 
   useEffect(() => {
     setIsError(false);
     setIsLoading(true);
+    
+    // Validate URL before setting source
+    if (src && isValidURL(src)) {
+      setValidatedSrc(src);
+    } else {
+      console.warn(`Invalid or incomplete image URL: "${src}"`);
+      setIsError(true);
+      setValidatedSrc(null); // Explicitly set to null, not empty string
+    }
   }, [src]);
 
   const handleLoad = useCallback(() => {
@@ -44,7 +55,7 @@ function Image({
   );
   return (
     <span className={cn("block w-fit overflow-hidden", className)}>
-      {isError || !src ? (
+      {isError || !validatedSrc ? (
         fallback
       ) : (
         <Tooltip title={alt ?? "No caption"}>
@@ -54,7 +65,7 @@ function Image({
               imageTransition && "transition-all duration-200 ease-out",
               imageClassName,
             )}
-            src={src}
+            src={validatedSrc}
             alt={alt}
             onLoad={handleLoad}
             onError={handleError}

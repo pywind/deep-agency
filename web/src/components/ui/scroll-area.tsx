@@ -5,12 +5,54 @@ import * as React from "react";
 
 import { cn } from "~/lib/utils";
 
+// Force ScrollAreaPrimitive to use passive wheel events
+if (typeof window !== 'undefined') {
+  // Add an empty passive wheel event listener to hint the browser
+  // that wheel events in this component should be treated as passive
+  document.addEventListener('wheel', () => {}, { passive: true });
+  document.addEventListener('touchmove', () => {}, { passive: true });
+}
+
 function ScrollArea({
   className,
   children,
   ref,
   ...props
 }: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+  // Add ref for the viewport to ensure we can access it
+  const viewportRef = React.useRef<HTMLDivElement>(null);
+  
+  // Combine refs if provided
+  const combinedRef = React.useMemo(() => {
+    if (!ref) return viewportRef;
+    
+    return (node: HTMLDivElement) => {
+      // @ts-ignore - we know this is a ref
+      if (typeof ref === 'function') ref(node);
+      else if (ref) ref.current = node;
+      
+      viewportRef.current = node;
+    };
+  }, [ref]);
+  
+  // Ensure wheel events are passive
+  React.useEffect(() => {
+    if (!viewportRef.current) return;
+    
+    // Set passive wheel events on the viewport
+    const viewportElement = viewportRef.current;
+    const wheelOptions = { passive: true };
+    
+    // Empty functions as we just want to ensure passivity
+    viewportElement.addEventListener('wheel', () => {}, wheelOptions);
+    viewportElement.addEventListener('touchmove', () => {}, wheelOptions);
+    
+    return () => {
+      viewportElement.removeEventListener('wheel', () => {});
+      viewportElement.removeEventListener('touchmove', () => {});
+    };
+  }, []);
+
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -21,7 +63,7 @@ function ScrollArea({
         data-slot="scroll-area-viewport"
         className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
         // https://github.com/stackblitz-labs/use-stick-to-bottom/issues/15
-        ref={ref}
+        ref={combinedRef}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>

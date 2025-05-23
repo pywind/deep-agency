@@ -28,9 +28,18 @@ class Plan(BaseModel):
     locale: str = Field(
         ..., description="e.g. 'en-US' or 'vi-VN', etc, based on the user's language"
     )
-    has_enough_context: bool
-    thought: str
-    title: str
+    has_enough_context: bool = Field(
+        default=False,
+        description="Whether the plan has enough context and the previous context is relevant to the current task",
+    )
+    thought: str = Field(
+        ...,
+        description="The thought process of the planner",
+    )
+    title: str = Field(
+        ...,
+        description="The title of the plan, which is the main idea of the plan",
+    )
     steps: List[Step] = Field(
         default_factory=list,
         description="Research & Processing steps to get more context",

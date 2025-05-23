@@ -192,7 +192,7 @@ export const GeneralTab: Tab = ({
               name="add_to_agents"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Agents to use</FormLabel>
+                  <FormLabel>Agents to use MCP servers</FormLabel>
                   <FormControl>
                     <DropdownMenu>
                       <div className="w-full border rounded-md relative">
@@ -257,7 +257,7 @@ export const GeneralTab: Tab = ({
                     </DropdownMenu>
                   </FormControl>
                   <FormDescription>
-                    Select which agents to use for tasks. At least one agent must be selected.
+                    Select which agents to use MCP for tasks. At least one agent must be selected.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

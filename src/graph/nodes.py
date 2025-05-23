@@ -10,6 +10,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langgraph.types import Command, interrupt
+from trustcall import create_extractor
 
 from src.agents import create_agent
 from src.tools.search import LoggedTavilySearch
@@ -79,72 +80,64 @@ def background_investigation_node(
     )
 
 
-def planner_node(
-    state: State, config: RunnableConfig
-) -> Command[Literal["human_feedback", "reporter"]]:
-    """Planner node that generate the full plan."""
-    logger.info("Planner generating full plan")
-    configurable = Configuration.from_runnable_config(config)
-    plan_iterations = state["plan_iterations"] if state.get("plan_iterations", 0) else 0
-    messages = apply_prompt_template("planner", state, configurable)
+def _extract_plan_with_reasoning_model(llm, messages):
+    """Extract plan using reasoning model with standard LLM invocation."""
+    response = llm.invoke(messages)
+    
+    # Extract reasoning content from response metadata
+    reasoning_content = ""
+    if hasattr(response, 'response_metadata') and response.response_metadata:
+        reasoning_tokens = response.response_metadata.get('reasoning_tokens', 0)
+        if reasoning_tokens > 0:
+            reasoning_content = response.response_metadata.get('reasoning', '')
+    
+    # Parse the plan from the response content
+    response_text = response.content
+    if isinstance(response_text, list):
+        response_text = str(response_text[0]) if response_text else ""
+    
+    plan_json = repair_json_output(response_text)
+    curr_plan = json.loads(plan_json)
+    extracted_plan = Plan.model_validate(curr_plan)
+    
+    return extracted_plan, reasoning_content
 
-    if (
-        plan_iterations == 0
-        and state.get("enable_background_investigation")
-        and state.get("background_investigation_results")
-    ):
-        messages += [
-            {
-                "role": "user",
-                "content": (
-                    "background investigation results of user query:\n"
-                    + state["background_investigation_results"]
-                    + "\n"
-                ),
-            }
-        ]
 
-    if AGENT_LLM_MAP["planner"] == "basic":
-        llm = get_llm_by_type(AGENT_LLM_MAP["planner"]).with_structured_output(
-            Plan,
-            method="json_mode",
-        )
+def _extract_plan_with_trustcall(llm, messages):
+    """Extract plan using trustcall extractor."""
+    extractor = create_extractor(llm, tools=[Plan], tool_choice="Plan")
+    result = extractor.invoke({"messages": messages})
+    extracted_plan = result["responses"][0]
+    
+    # Ensure we have a Plan object
+    if not isinstance(extracted_plan, Plan):
+        extracted_plan = Plan.model_validate(extracted_plan)
+    
+    return extracted_plan, None  # No reasoning content for non-reasoning models
+
+
+def _format_plan_response(extracted_plan: Plan, reasoning_content: str = None) -> str:
+    """Format the plan response with optional reasoning content."""
+    plan_json = extracted_plan.model_dump_json(indent=4, exclude_none=True)
+    
+    if reasoning_content:
+        return f"Reasoning:\n{reasoning_content}\n\nPlan:\n{plan_json}"
     else:
-        llm = get_llm_by_type(AGENT_LLM_MAP["planner"])
+        return plan_json
 
-    # if the plan iterations is greater than the max plan iterations, return the reporter node
-    if plan_iterations >= configurable.max_plan_iterations:
-        return Command(goto="reporter")
 
-    full_response = ""
-    if AGENT_LLM_MAP["planner"] == "basic":
-        response = llm.invoke(messages)
-        full_response = response.model_dump_json(indent=4, exclude_none=True)
-    else:
-        response = llm.stream(messages)
-        for chunk in response:
-            full_response += chunk.content
-    logger.debug(f"Current state messages: {state['messages']}")
-    logger.info(f"Planner response: {full_response}")
-
-    try:
-        curr_plan = json.loads(repair_json_output(full_response))
-    except json.JSONDecodeError:
-        logger.warning("Planner response is not a valid JSON")
-        if plan_iterations > 0:
-            return Command(goto="reporter")
-        else:
-            return Command(goto="__end__")
-    if curr_plan.get("has_enough_context"):
+def _create_plan_command(extracted_plan: Plan, full_response: str) -> Command[Literal["human_feedback", "reporter"]]:
+    """Create the appropriate command based on plan context."""
+    if extracted_plan.has_enough_context:
         logger.info("Planner response has enough context.")
-        new_plan = Plan.model_validate(curr_plan)
         return Command(
             update={
                 "messages": [AIMessage(content=full_response, name="planner")],
-                "current_plan": new_plan,
+                "current_plan": extracted_plan,
             },
             goto="reporter",
         )
+    
     return Command(
         update={
             "messages": [AIMessage(content=full_response, name="planner")],
@@ -152,6 +145,62 @@ def planner_node(
         },
         goto="human_feedback",
     )
+
+
+def planner_node(
+    state: State, config: RunnableConfig
+) -> Command[Literal["human_feedback", "reporter"]]:
+    """Planner node that generate the full plan."""
+    logger.info("Planner generating full plan")
+    configurable = Configuration.from_runnable_config(config)
+    plan_iterations = state["plan_iterations"] if state.get("plan_iterations", 0) else 0
+    messages = apply_prompt_template("planner", dict(state), configurable)
+
+    if (
+        plan_iterations == 0
+        and state.get("enable_background_investigation")
+        and state.get("background_investigation_results")
+    ):
+        background_results = state.get("background_investigation_results") or ""
+        messages += [
+            {
+                "role": "user",
+                "content": (
+                    "background investigation results of user query:\n"
+                    + background_results
+                    + "\n"
+                ),
+            }
+        ]
+
+    # if the plan iterations is greater than the max plan iterations, return the reporter node
+    if plan_iterations >= configurable.max_plan_iterations:
+        return Command(goto="reporter")
+
+    # Get the LLM
+    llm = get_llm_by_type(AGENT_LLM_MAP["planner"])
+    
+    try:
+        # Extract plan using appropriate method based on model type
+        if AGENT_LLM_MAP["planner"] == "reasoning":
+            extracted_plan, reasoning_content = _extract_plan_with_reasoning_model(llm, messages)
+        else:
+            extracted_plan, reasoning_content = _extract_plan_with_trustcall(llm, messages)
+        
+        # Format response and create command
+        full_response = _format_plan_response(extracted_plan, reasoning_content)
+        
+        logger.debug(f"Current state messages: {state['messages']}")
+        logger.info(f"Planner response: {full_response}")
+        
+        return _create_plan_command(extracted_plan, full_response)
+        
+    except Exception as e:
+        logger.warning(f"Plan extraction failed: {e}")
+        if plan_iterations > 0:
+            return Command(goto="reporter")
+        else:
+            return Command(goto="__end__")
 
 
 def human_feedback_node(
@@ -289,6 +338,12 @@ def reporter_node(state: State, config: RunnableConfig):
     logger.info("Reporter write final report")
     configurable = Configuration.from_runnable_config(config)
     current_plan = state.get("current_plan")
+    
+    # Check if current_plan is a Plan object, not a string
+    if not current_plan or isinstance(current_plan, str):
+        logger.warning("No valid plan found for reporter node")
+        return {"final_report": "No plan available to generate report."}
+    
     input_ = {
         "messages": [
             HumanMessage(
@@ -318,7 +373,7 @@ def reporter_node(state: State, config: RunnableConfig):
     logger.debug(f"Current invoke messages: {invoke_messages}")
     response = get_llm_by_type(AGENT_LLM_MAP["reporter"]).invoke(invoke_messages)
     response_content = response.content
-    logger.info(f"reporter response: {response_content}")
+    logger.info("Reporter response completed")
 
     return {"final_report": response_content}
 
@@ -329,8 +384,11 @@ def research_team_node(
     """Research team node that collaborates on tasks."""
     logger.info("Research team is collaborating on tasks.")
     current_plan = state.get("current_plan")
-    if not current_plan or not current_plan.steps:
+    
+    # Check if current_plan is a Plan object, not a string
+    if not current_plan or isinstance(current_plan, str) or not hasattr(current_plan, 'steps'):
         return Command(goto="planner")
+    
     if all(step.execution_res for step in current_plan.steps):
         return Command(goto="planner")
     for step in current_plan.steps:
@@ -349,6 +407,11 @@ async def _execute_agent_step(
     """Helper function to execute a step using the specified agent."""
     current_plan = state.get("current_plan")
     observations = state.get("observations", [])
+
+    # Check if current_plan is a Plan object, not a string
+    if not current_plan or isinstance(current_plan, str) or not hasattr(current_plan, 'steps'):
+        logger.warning("No valid plan found for agent execution")
+        return Command(goto="research_team")
 
     # Find the first unexecuted step
     current_step = None

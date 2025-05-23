@@ -8,6 +8,7 @@ import { Geist } from "next/font/google";
 import Script from "next/script";
 
 import { ThemeProviderWrapper } from "~/components/deer-flow/theme-provider-wrapper";
+import { PassiveWheelProvider } from "~/components/deer-flow/passive-wheel-provider";
 import { env } from "~/env";
 
 import { Toaster } from "../components/deer-flow/toaster";
@@ -19,9 +20,15 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
+// Optimized font loading configuration
 const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist-sans",
+  display: "swap", // Use swap to prevent FOUT (Flash of Unstyled Text)
+  preload: false, // Disable automatic preload to prevent unused preload warnings
+  fallback: ["system-ui", "sans-serif"], // Fallback fonts
+  adjustFontFallback: true, // Automatically adjust font metrics to minimize layout shift
+  weight: ["400", "500", "600", "700"], // Specify exact weights needed
 });
 
 export default function RootLayout({
@@ -43,7 +50,9 @@ export default function RootLayout({
         </Script>
       </head>
       <body className="bg-app" suppressHydrationWarning>
-        <ThemeProviderWrapper>{children}</ThemeProviderWrapper>
+        <PassiveWheelProvider>
+          <ThemeProviderWrapper>{children}</ThemeProviderWrapper>
+        </PassiveWheelProvider>
         <Toaster />
       </body>
     </html>

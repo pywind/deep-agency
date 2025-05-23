@@ -2,19 +2,7 @@
 
 ## Example of MCP Server Configuration
 
-```json
-{
-  "mcpServers": {
-    "mcp-github-trending": {
-      "transport": "stdio",
-      "command": "uvx",
-      "args": [
-          "mcp-github-trending"
-      ]
-    }
-  }
-}
-```
+
 
 ## APIs
 

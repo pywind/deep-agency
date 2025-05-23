@@ -51,6 +51,24 @@ export function ScrollContainer({
     }
   }, [autoScrollToBottom, contentRef, scrollRef]);
 
+  // Ensure wheel events are passive for better scrolling performance
+  const scrollViewRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const scrollViewElement = scrollViewRef.current;
+    
+    // Find the actual viewport element if it exists
+    const viewportElement = scrollViewElement?.querySelector('[data-radix-scroll-area-viewport]');
+    
+    if (viewportElement) {
+      // Force passive wheel events on the scroll viewport
+      const wheelOptions = { passive: true };
+      
+      // Add passive listeners directly to the viewport element
+      viewportElement.addEventListener('wheel', () => {}, wheelOptions);
+      viewportElement.addEventListener('touchmove', () => {}, wheelOptions);
+    }
+  }, []);
+
   return (
     <div className={cn("relative", className)}>
       {scrollShadow && (

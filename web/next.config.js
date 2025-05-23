@@ -19,6 +19,32 @@ const config = {
     position: 'bottom-left',
   },
 
+  // Security headers configuration
+  async headers() {
+    return [
+      {
+        // Apply these headers to all routes
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'same-site',
+          },
+        ],
+      },
+      {
+        // Specific configuration for favicon
+        source: '/favicon.ico',
+        headers: [
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'same-site',
+          },
+        ],
+      },
+    ];
+  },
+
   // For production mode
   webpack: (config, { isServer }) => {
     config.module.rules.push({

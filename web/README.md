@@ -1,4 +1,4 @@
-# 🦌 DeerFlow Web UI
+# Deep Agency Web UI
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -10,7 +10,6 @@ This is the web UI for [`DeerFlow`](https://github.com/bytedance/deer-flow).
 
 ### Prerequisites
 
-- [`DeerFlow`](https://github.com/bytedance/deer-flow)
 - Node.js (v22.14.0+)
 - pnpm (v10.6.2+) as package manager
 
@@ -18,7 +17,6 @@ This is the web UI for [`DeerFlow`](https://github.com/bytedance/deer-flow).
 
 Create a `.env` file in the project root and configure the following environment variables:
 
-- `NEXT_PUBLIC_API_URL`: The URL of the deer-flow API.
 
 It's always a good idea to start with the given example file, and edit the `.env` file with your own values:
 
@@ -28,7 +26,7 @@ cp .env.example .env
 
 ## How to Install
 
-DeerFlow Web UI uses `pnpm` as its package manager.
+Web UI uses `pnpm` as its package manager.
 To install the dependencies, run:
 
 ```bash
@@ -90,6 +88,38 @@ docker compose build
 # start the server
 docker compose up
 ```
+
+## UI Architecture
+
+### Design Inheritance
+
+The DeerFlow Web UI builds upon design elements and architectural patterns from two major influences:
+
+1. **DeerFlow Core Design Language**: 
+   - Consistent visual styling from the DeerFlow ecosystem
+   - Semantic color schemes and typography
+   - Flow-based interaction patterns optimized for AI-assisted workflows
+
+2. **CopilotKit Inspiration**:
+   - Chat-based interaction model
+   - Tool integration patterns for AI assistant capabilities
+   - Streamlined command interfaces for tool discovery and execution
+
+The combination of these influences creates a unified experience that balances power and simplicity. The UI embraces:
+
+- **Contextual Actions**: Tools and capabilities appear when relevant to the current task
+- **Progressive Disclosure**: Advanced features are accessible but don't overwhelm the initial experience
+- **Consistent Feedback**: Clear visual indicators for async operations and AI processing
+
+### Component Architecture
+
+The UI is structured around reusable components that implement consistent patterns:
+
+- **Dialog Components**: For configuration interfaces like the MCP server setup shown above
+- **Stream Renderers**: For real-time rendering of AI-generated content
+- **Tool Panels**: For displaying available tools and their status
+
+This architecture makes it easier to maintain a consistent experience while enabling rapid iteration on new features.
 
 ## License
 
