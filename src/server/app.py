@@ -206,7 +206,8 @@ async def text_to_speech(request: TTSRequest):
         )
 
         if not result["success"]:
-            raise HTTPException(status_code=500, detail=str(result["error"]))
+            logger.error(f"TTS API error: {result['error']}")
+            raise HTTPException(status_code=500, detail="An internal error occurred while processing the TTS request.")
 
         # Decode the base64 audio data
         audio_data = base64.b64decode(result["audio_data"])

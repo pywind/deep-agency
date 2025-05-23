@@ -128,4 +128,4 @@ class VolcengineTTS:
 
         except Exception as e:
             logger.exception(f"Error in TTS API call: {str(e)}")
-            return {"success": False, "error": str(e), "audio_data": None}
+            return {"success": False, "error": "An internal error occurred in the TTS API.", "audio_data": None}
